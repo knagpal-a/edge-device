@@ -1,1 +1,3 @@
+mountpoints:
+  /: https://raw.githubusercontent.com/knagpal/edge-device/main
 
