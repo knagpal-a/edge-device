@@ -822,70 +822,60 @@ function initOtpBehavior(form: HTMLFormElement, fields: FieldList) {
  */
 export default function decorate(block: HTMLElement) {
   block.style.visibility = 'hidden';
-  const links = [...block.querySelectorAll<HTMLAnchorElement>('a[href]')];
-  const [source] = links.map((a) => a.href);
-  if (source) {
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach(async (entry) => {
-        if (entry.isIntersecting) {
-          try {
-            const resp = await fetch(new URL(source, window.location.origin));
-            if (!resp.ok) throw new Error(`${resp.status}: ${resp.statusText}`);
-            const { data } = await resp.json();
-            if (!data) throw new Error(`No form fields at ${source}`);
-            const staticFields: FieldList = [
-              {
-                field: 'firstName',
-                type: 'text',
-                label: 'First name',
-                placeholder: 'Enter first name',
-                required: 'true',
-              },
-              {
-                field: 'lastName',
-                type: 'text',
-                label: 'Last name',
-                placeholder: 'Enter last name',
-                required: 'true',
-              },
-              {
-                field: 'mobile',
-                type: 'tel',
-                label: 'Mobile number',
-                placeholder: 'Enter mobile number',
-                required: 'true',
-              },
-              {
-                field: 'otp',
-                type: 'text',
-                label: 'OTP',
-                placeholder: 'Enter OTP',
-                required: 'true',
-              },
-              {
-                field: 'submit',
-                type: 'submit',
-                label: 'Verify OTP',
-              },
-            ];
-            const form = buildForm(staticFields);
-            initOtpBehavior(form, data);
-            block.replaceChildren(form);
-            block.removeAttribute('style');
-          } catch (error) {
-            // eslint-disable-next-line no-console
-            console.error('Could not build form from', source, error);
-            if (block.parentElement) block.parentElement.remove();
-          }
-          observer.disconnect();
-        }
-      });
-    }, { threshold: 0 });
+  const configFields: FieldList = [];
+  block.querySelectorAll<HTMLTableRowElement>('tr').forEach((row) => {
+    const cells = row.querySelectorAll<HTMLTableCellElement>('td, th');
+    if (cells.length >= 2) {
+      const key = cells[0].textContent?.trim() || '';
+      const value = cells[1].textContent?.trim() || '';
+      if (key) {
+        configFields.push({
+          field: key,
+          type: 'hidden',
+          default: value,
+        });
+      }
+    }
+  });
 
-    observer.observe(block);
-  } else {
-    // eslint-disable-next-line no-console
-    console.error('Unable to create form without source');
-    if (block.parentElement) block.parentElement.remove();
-  }
+  const staticFields: FieldList = [
+    {
+      field: 'firstName',
+      type: 'text',
+      label: 'First name',
+      placeholder: 'Enter first name',
+      required: 'true',
+    },
+    {
+      field: 'lastName',
+      type: 'text',
+      label: 'Last name',
+      placeholder: 'Enter last name',
+      required: 'true',
+    },
+    {
+      field: 'mobile',
+      type: 'tel',
+      label: 'Mobile number',
+      placeholder: 'Enter mobile number',
+      required: 'true',
+    },
+    {
+      field: 'otp',
+      type: 'text',
+      label: 'OTP',
+      placeholder: 'Enter OTP',
+      required: 'true',
+    },
+    {
+      field: 'submit',
+      type: 'submit',
+      label: 'Verify OTP',
+    },
+  ];
+
+  const form = buildForm(staticFields);
+  initOtpBehavior(form, configFields);
+  block.replaceChildren(form);
+  block.removeAttribute('style');
 }
