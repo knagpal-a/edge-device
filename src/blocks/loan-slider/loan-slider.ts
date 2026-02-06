@@ -1,7 +1,7 @@
 import { html, render, TemplateResult } from 'lit';
 
 import { cleanUpBlock } from 'Utils/cleanUpBlock';
-import { getChildNodeText } from 'Utils/getChildNodeText';
+import { readBlockConfig } from '../../app/tasks/readBlockConfig';
 
 import './loan-slider.scss';
 
@@ -21,17 +21,6 @@ interface LoanSliderState {
   pan: string;
   panTouched: boolean;
   showResult: boolean;
-}
-
-enum blockRows {
-  min,
-  max,
-  step,
-  initial,
-  currency,
-  ctaLabel,
-  title,
-  helper,
 }
 
 const PAN_THRESHOLD = 50000;
@@ -140,15 +129,27 @@ const template = (config: LoanSliderConfig, state: LoanSliderState): TemplateRes
 };
 
 export default function (block: HTMLElement) {
+  const rawConfig = readBlockConfig(block) as Record<string, string>;
+  const getValue = (keys: string[] | string, fallback: string): string => {
+    const keyList = Array.isArray(keys) ? keys : [keys];
+    for (const key of keyList) {
+      const value = rawConfig[key];
+      if (typeof value === 'string' && value.trim().length) {
+        return value.trim();
+      }
+    }
+    return fallback;
+  };
+
   const config: LoanSliderConfig = {
-    min: toNumber(getChildNodeText(block, blockRows.min), 10000),
-    max: toNumber(getChildNodeText(block, blockRows.max), 200000),
-    step: toNumber(getChildNodeText(block, blockRows.step), 1000),
-    initial: toNumber(getChildNodeText(block, blockRows.initial), 50000),
-    currency: getChildNodeText(block, blockRows.currency) || '₹',
-    ctaLabel: getChildNodeText(block, blockRows.ctaLabel) || 'Continue',
-    title: getChildNodeText(block, blockRows.title) || 'Choose your loan amount',
-    helper: getChildNodeText(block, blockRows.helper) || 'Use the slider or type an amount.',
+    min: toNumber(getValue('min', '10000'), 10000),
+    max: toNumber(getValue('max', '200000'), 200000),
+    step: toNumber(getValue('step', '1000'), 1000),
+    initial: toNumber(getValue('initial', '50000'), 50000),
+    currency: getValue('currency', '₹'),
+    ctaLabel: getValue(['ctalabel', 'cta-label'], 'Continue'),
+    title: getValue('title', 'Choose your loan amount'),
+    helper: getValue('helper', 'Use the slider or type an amount.'),
   };
 
   config.min = Math.min(config.min, config.max);
