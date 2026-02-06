@@ -696,18 +696,20 @@ function getFormConfigValue(fields: FieldList, name: string, fallback = ''): str
 }
 
 function initOtpBehavior(form: HTMLFormElement, fields: FieldList) {
-  const otpFieldName = getFormConfigValue(fields, 'otpFieldName', 'otp');
-  const resendTimerSeconds = Number(getFormConfigValue(fields, 'resendTimerSeconds', '30'));
-  const resendLimit = Number(getFormConfigValue(fields, 'resendLimit', '3'));
-  const otpErrorThreshold = Number(getFormConfigValue(fields, 'otpErrorThreshold', '5'));
+  const otpFieldName = 'otp';
+  const resendTimerSeconds = 30;
+  const resendLimit = 3;
+  const otpErrorThreshold = 0;
   const resendLimitMessage = getFormConfigValue(
     fields,
     'resendLimitMessage',
     'Resend OTP limit exhausted.',
   );
-  const otpErrorRedirect = getFormConfigValue(fields, 'otpErrorRedirect', '');
-  const resendLabel = getFormConfigValue(fields, 'resendLabel', 'Resend OTP');
-  const resendLoaderLabel = getFormConfigValue(fields, 'resendLoaderLabel', 'Resend available in');
+  const otpErrorRedirect = '';
+  const resendLabel = 'Resend OTP';
+  const resendLoaderLabel = 'Resend available in';
+  const otpSuccessRedirect = '/thank-you';
+  const otpRetryMessage = 'Invalid OTP. Please try again.';
 
   const otpInput = form.querySelector(`input[name="${toCamelCase(otpFieldName)}"]`) as HTMLInputElement | null;
   if (!otpInput) return;
@@ -730,6 +732,11 @@ function initOtpBehavior(form: HTMLFormElement, fields: FieldList) {
 
   resendWrapper.append(loader, resendButton, limitMessage);
   otpField.append(resendWrapper);
+
+  const otpRetry = createElement('div', 'otp-verify__message');
+  otpRetry.textContent = otpRetryMessage;
+  otpRetry.style.display = 'none';
+  otpField.append(otpRetry);
 
   let resendCount = 0;
   let timerId: number | undefined;
@@ -784,6 +791,29 @@ function initOtpBehavior(form: HTMLFormElement, fields: FieldList) {
       }
     }
   });
+
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    otpRetry.style.display = 'none';
+
+    const valid = form.reportValidity();
+    if (!valid) {
+      const firstInvalid = form.querySelector(':invalid:not(fieldset)') as HTMLElement | null;
+      if (firstInvalid) {
+        firstInvalid.focus();
+        firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        firstInvalid.setAttribute('aria-invalid', 'true');
+      }
+      return;
+    }
+
+    if (otpInput.value === '12345') {
+      window.location.href = otpSuccessRedirect;
+    } else {
+      otpRetry.style.display = 'block';
+      otpInput.focus();
+    }
+  });
 }
 
 /**
@@ -793,7 +823,7 @@ function initOtpBehavior(form: HTMLFormElement, fields: FieldList) {
 export default function decorate(block: HTMLElement) {
   block.style.visibility = 'hidden';
   const links = [...block.querySelectorAll<HTMLAnchorElement>('a[href]')];
-  const [source, submit] = links.map((a) => a.href);
+  const [source] = links.map((a) => a.href);
   if (source) {
     const observer = new IntersectionObserver((entries) => {
       entries.forEach(async (entry) => {
@@ -803,7 +833,42 @@ export default function decorate(block: HTMLElement) {
             if (!resp.ok) throw new Error(`${resp.status}: ${resp.statusText}`);
             const { data } = await resp.json();
             if (!data) throw new Error(`No form fields at ${source}`);
-            const form = buildForm(data, submit);
+            const staticFields: FieldList = [
+              {
+                field: 'firstName',
+                type: 'text',
+                label: 'First name',
+                placeholder: 'Enter first name',
+                required: 'true',
+              },
+              {
+                field: 'lastName',
+                type: 'text',
+                label: 'Last name',
+                placeholder: 'Enter last name',
+                required: 'true',
+              },
+              {
+                field: 'mobile',
+                type: 'tel',
+                label: 'Mobile number',
+                placeholder: 'Enter mobile number',
+                required: 'true',
+              },
+              {
+                field: 'otp',
+                type: 'text',
+                label: 'OTP',
+                placeholder: 'Enter OTP',
+                required: 'true',
+              },
+              {
+                field: 'submit',
+                type: 'submit',
+                label: 'Verify OTP',
+              },
+            ];
+            const form = buildForm(staticFields);
             initOtpBehavior(form, data);
             block.replaceChildren(form);
             block.removeAttribute('style');
