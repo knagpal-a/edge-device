@@ -274,3 +274,75 @@
   font-size: 12px;
   color: #b91c1c;
 }
+
+/* Base form styling */
+.form form {
+  max-width: 420px;
+  margin: 32px auto;
+  padding: 24px;
+  border-radius: 16px;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  box-shadow: 0 12px 30px rgb(15 23 42 / 10%);
+}
+
+.form .form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.form label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.form input[type='text'],
+.form input[type='tel'],
+.form input[type='password'],
+.form input[type='email'],
+.form textarea,
+.form select {
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 14px;
+  color: #111827;
+  background: #f9fafb;
+}
+
+.form input:focus,
+.form textarea:focus,
+.form select:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgb(37 99 235 / 15%);
+}
+
+.form .button-wrapper {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.form button.button {
+  border: none;
+  border-radius: 999px;
+  padding: 10px 18px;
+  background: #111827;
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.form button.button:hover {
+  background: #0f172a;
+}
+
+@media (max-width: 600px) {
+  .form form {
+    margin: 16px;
+    padding: 20px;
+  }
+}

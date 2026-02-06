@@ -15,6 +15,9 @@ interface FieldConfig {
   options?: string;
   conditional?: string;
   value?: string;
+  pattern?: string;
+  maxlength?: string;
+  inputmode?: string;
 }
 
 type FieldList = FieldConfig[];
@@ -86,7 +89,14 @@ function buildLabel(
  */
 function buildInput(field: FieldConfig): HTMLInputElement {
   const {
-    type, field: fieldName, required, default: defaultValue, placeholder,
+    type,
+    field: fieldName,
+    required,
+    default: defaultValue,
+    placeholder,
+    pattern,
+    maxlength,
+    inputmode,
   } = field;
 
   const input = createElement('input');
@@ -96,6 +106,9 @@ function buildInput(field: FieldConfig): HTMLInputElement {
   input.required = required === 'true';
   if (defaultValue) input.value = defaultValue;
   if (placeholder) input.placeholder = placeholder;
+  if (pattern) input.pattern = pattern;
+  if (maxlength) input.maxLength = Number(maxlength);
+  if (inputmode) input.inputMode = inputmode as HTMLInputElement['inputMode'];
   return input;
 }
 
@@ -713,6 +726,7 @@ function initOtpBehavior(form: HTMLFormElement, fields: FieldList) {
 
   const otpInput = form.querySelector(`input[name="${toCamelCase(otpFieldName)}"]`) as HTMLInputElement | null;
   if (!otpInput) return;
+  const mobileInput = form.querySelector('input[name="mobile"]') as HTMLInputElement | null;
 
   const otpField = otpInput.closest('.form-field') as HTMLElement | null;
   if (!otpField) return;
@@ -740,6 +754,7 @@ function initOtpBehavior(form: HTMLFormElement, fields: FieldList) {
 
   let resendCount = 0;
   let timerId: number | undefined;
+  let timerStarted = false;
 
   const setVisibility = (state: 'loading' | 'ready' | 'limit') => {
     loader.style.display = state === 'loading' ? 'flex' : 'none';
@@ -747,7 +762,15 @@ function initOtpBehavior(form: HTMLFormElement, fields: FieldList) {
     limitMessage.style.display = state === 'limit' ? 'block' : 'none';
   };
 
+  const resetVisibility = () => {
+    loader.style.display = 'none';
+    resendButton.style.display = 'none';
+    limitMessage.style.display = 'none';
+  };
+
   const startTimer = (duration: number) => {
+    if (timerStarted) return;
+    timerStarted = true;
     let remaining = Number.isFinite(duration) ? duration : 0;
     loaderText.textContent = resendLoaderLabel;
     setVisibility('loading');
@@ -768,7 +791,18 @@ function initOtpBehavior(form: HTMLFormElement, fields: FieldList) {
     timerId = window.setInterval(tick, 1000);
   };
 
-  startTimer(resendTimerSeconds);
+  resetVisibility();
+
+  if (mobileInput) {
+    const maybeStartTimer = () => {
+      const digitsOnly = mobileInput.value.replace(/\D/g, '');
+      if (digitsOnly.length >= 10) startTimer(resendTimerSeconds);
+    };
+    mobileInput.addEventListener('input', maybeStartTimer);
+    maybeStartTimer();
+  } else {
+    startTimer(resendTimerSeconds);
+  }
 
   resendButton.addEventListener('click', () => {
     resendCount += 1;
@@ -859,6 +893,9 @@ export default function decorate(block: HTMLElement) {
       label: 'Mobile number',
       placeholder: 'Enter mobile number',
       required: 'true',
+      inputmode: 'numeric',
+      maxlength: '10',
+      pattern: '\\\\d{10}',
     },
     {
       field: 'otp',
