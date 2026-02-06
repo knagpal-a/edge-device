@@ -268,3 +268,9 @@
   font-size: 12px;
   color: #b91c1c;
 }
+
+.otp-verify__message {
+  margin-top: 8px;
+  font-size: 12px;
+  color: #b91c1c;
+}
